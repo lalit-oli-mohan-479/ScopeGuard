@@ -7,7 +7,7 @@
     "dev": "npm --prefix frontend run dev",
     "build": "npm --prefix frontend run build",
     "test:frontend": "npm --prefix frontend run test",
-    "test:backend": "pytest tests/test_backend.py -v",
+    "test:backend": "python -m pytest tests/test_backend.py -v",
     "test": "npm run test:backend && npm run test:frontend"
   },
   "keywords": [

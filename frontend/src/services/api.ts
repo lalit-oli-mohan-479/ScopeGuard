@@ -5,6 +5,10 @@ import type {
   ScopeAnalysisRequest,
   ScopeAnalysisResponse,
 } from '../types'
+import {
+  FALLBACK_DEMO_DATA,
+  runClientSideAnalysis,
+} from './demoFallbackData'
 
 const API_BASE = '/api'
 
@@ -23,70 +27,76 @@ export class ApiError extends Error {
 export async function fetchHealth(): Promise<HealthResponse> {
   try {
     const res = await fetch(`${API_BASE}/health`)
-    if (!res.ok) {
-      return {
-        status: 'offline',
-        ollama_connected: false,
-        ollama_url: 'http://localhost:11434',
-        configured_model: 'qwen2.5:3b',
-        model_available: false,
-        available_models: [],
-        error_message: `Backend returned status ${res.status}`,
-        setup_command: 'ollama run qwen2.5:3b',
-      }
+    if (res.ok) {
+      return await res.json()
     }
-    return await res.json()
-  } catch (err) {
-    return {
-      status: 'offline',
-      ollama_connected: false,
-      ollama_url: 'http://localhost:11434',
-      configured_model: 'qwen2.5:3b',
-      model_available: false,
-      available_models: [],
-      error_message: 'Backend server is not reachable.',
-      setup_command: 'ollama run qwen2.5:3b',
-    }
+  } catch {
+    // Backend offline / GitHub Pages static mode
+  }
+
+  return {
+    status: 'offline',
+    ollama_connected: false,
+    ollama_url: 'http://localhost:11434',
+    configured_model: 'qwen2.5:3b',
+    model_available: false,
+    available_models: [],
+    error_message: 'GitHub Pages Demo Mode. Connect local Ollama instance for live inference.',
+    setup_command: 'ollama run qwen2.5:3b',
   }
 }
 
 export async function fetchDemoData(): Promise<DemoApiResponse> {
-  const res = await fetch(`${API_BASE}/demo`)
-  if (!res.ok) {
-    throw new Error('Failed to load demo scenario from backend.')
+  try {
+    const res = await fetch(`${API_BASE}/demo`)
+    if (res.ok) {
+      return await res.json()
+    }
+  } catch {
+    // Backend offline / GitHub Pages static mode
   }
-  return await res.json()
+
+  // Graceful fallback so GitHub Pages visitors have all interactive scenarios immediately
+  return FALLBACK_DEMO_DATA
 }
 
 export async function analyzeScope(
   request: ScopeAnalysisRequest
 ): Promise<ScopeAnalysisResponse> {
-  const res = await fetch(`${API_BASE}/analyze`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(request),
-  })
+  try {
+    const res = await fetch(`${API_BASE}/analyze`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    })
 
-  if (!res.ok) {
-    let errorDetail: ApiErrorDetail
-    try {
-      errorDetail = await res.json()
-    } catch {
-      errorDetail = {
-        error: 'UNKNOWN_ERROR',
-        message: `Analysis request failed with HTTP ${res.status}`,
-        can_retry: true,
-      }
+    if (res.ok) {
+      return await res.json()
     }
 
-    throw new ApiError(
-      errorDetail.message || 'Scope analysis failed.',
-      res.status,
-      errorDetail
-    )
+    if (res.status === 422 || res.status === 503) {
+      let errorDetail: ApiErrorDetail
+      try {
+        errorDetail = await res.json()
+      } catch {
+        errorDetail = {
+          error: 'ANALYSIS_ERROR',
+          message: `Analysis request failed with HTTP ${res.status}`,
+          can_retry: true,
+        }
+      }
+      throw new ApiError(errorDetail.message || 'Scope analysis failed.', res.status, errorDetail)
+    }
+  } catch (err) {
+    if (err instanceof ApiError) throw err
+    // If network error / 404 (e.g. static hosting on GitHub Pages), run client-side engine!
+    console.info('Backend unreachable, using client-side demo inference engine.')
   }
 
-  return await res.json()
+  // Simulated inference delay for realistic UX on web demo
+  await new Promise((resolve) => setTimeout(resolve, 800))
+  return runClientSideAnalysis(request)
 }
+

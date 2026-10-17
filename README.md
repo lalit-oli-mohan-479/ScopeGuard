@@ -11,6 +11,10 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5%2B-3178C6.svg)](https://www.typescriptlang.org)
 [![Ollama](https://img.shields.io/badge/Ollama-Local_Inference-black.svg)](https://ollama.com)
+[![GitHub Pages](https://img.shields.io/badge/GitHub_Pages-Live_Demo-emerald.svg)](https://lalit-oli-mohan-479.github.io/ScopeGuard/)
+
+> 🌐 **Live Web Application & Interactive Demo:** **[https://lalit-oli-mohan-479.github.io/ScopeGuard/](https://lalit-oli-mohan-479.github.io/ScopeGuard/)**  
+> *(Experience the interactive scope analysis, reply drafts, and report generator directly in your browser without local setup!)*
 
 ---
 
